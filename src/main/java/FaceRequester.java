@@ -1,7 +1,6 @@
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -11,7 +10,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class FaceRequester {
-
+    // *****************************************************************************
+    // ***                     Valid until 1 november 2017                       ***
+    // *** Endpoint: https://westcentralus.api.cognitive.microsoft.com/face/v1.0 ***
+    // ***                  Key 1: 87c048759d514e94bec0826164a98187              ***
+    // ***                  Key 2: 0efd551a82a94ec1bd0fe00ed59d65d6              ***
+    // *** Through Corneels Github account                                       ***
+    // *****************************************************************************
     private final String USER_AGENT = "Mozilla/5.0";
     private final String subscriptionKey;
     private final String endPoint;
@@ -19,32 +24,13 @@ public class FaceRequester {
     private boolean returnFaceLandmarks = true;
     private String returnFaceAttributes = "age,gender,headPose,smile,facialHair,glasses,emotion,hair,makeup,occlusion,accessories,blur,exposure,noise";
 
-    public static void main(String[] args) throws Exception {
-        // *****************************************************************************
-        // ***                     Valid until 1 november 2017                       ***
-        // *** Endpoint: https://westcentralus.api.cognitive.microsoft.com/face/v1.0 ***
-        // ***                  Key 1: 87c048759d514e94bec0826164a98187              ***
-        // ***                  Key 2: 0efd551a82a94ec1bd0fe00ed59d65d6              ***
-        // *** Through Corneels Github account                                       ***
-        // *****************************************************************************
-        FaceRequester requester = new FaceRequester(
-                "87c048759d514e94bec0826164a98187",
-                "https://westcentralus.api.cognitive.microsoft.com/face/v1.0/detect"
-        );
-        //String exampleMicrosoft = requester.byString(
-        //        "{'url':'https://upload.wikimedia.org/wikipedia/commons/c/c3/RH_Louise_Lillian_Gish.jpg'}"
-        //);
-        String obamaResults = requester.byFile("D:\\data\\CEI22232\\Documents\\gitProjects\\src\\main\\resources\\obama.jpg");
-        System.out.println(obamaResults);
-    }
-
     public FaceRequester(String subscriptionKey, String endPoint){
         this.subscriptionKey = subscriptionKey;
         this.endPoint = endPoint;
     }
 
     private URL buildUrl() throws MalformedURLException {
-        StringBuffer urlSb = new StringBuffer();
+        StringBuilder urlSb = new StringBuilder();
         urlSb.append(endPoint).append('?');
         urlSb.append("returnFaceId=").append(returnFaceId).append("&");
         urlSb.append("returnFaceLandmarks=").append(returnFaceLandmarks).append("&");
@@ -61,7 +47,14 @@ public class FaceRequester {
         return connection;
     }
 
-    private String byString(String request) throws Exception {
+    public String byWebUrl(URL urlOfImage) throws Exception {
+        return byWebUrl(urlOfImage.toString());
+    }
+    public String byWebUrl(String urlOfImage) throws Exception {
+        String target = "{'url':'" + urlOfImage + "'}";
+        return byJsonUrlString(target);
+    }
+    public String byJsonUrlString(String JsonUrlOfImage) throws Exception {
 
         URL url = buildUrl();
         HttpURLConnection connection = createConnection(url);
@@ -70,13 +63,13 @@ public class FaceRequester {
         // Send post request
         connection.setDoOutput(true);
         DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-        wr.writeBytes( request );
+        wr.writeBytes( JsonUrlOfImage );
         wr.flush();
         wr.close();
 
-        int responseCode = connection.getResponseCode();
-        if (responseCode != 200) {
-            System.out.println("Response Code : " + responseCode);
+        int httpStatusCode = connection.getResponseCode();
+        if (httpStatusCode != HttpURLConnection.HTTP_OK) {
+            System.out.println("Http status code : " + httpStatusCode);
         }
 
         BufferedReader in = new BufferedReader(
@@ -92,7 +85,10 @@ public class FaceRequester {
         return response.toString();
     }
 
-    private String byFile(String pathToFile) throws Exception {
+    public String byFile(String pathToFile) throws Exception {
+        return byFile(Paths.get(pathToFile));
+    }
+    public String byFile(Path pathToFile) throws Exception {
 
         URL url = buildUrl();
         HttpURLConnection connection = createConnection(url);
@@ -100,12 +96,11 @@ public class FaceRequester {
 
         // Send post request
         connection.setDoOutput(true);
-        Path path = Paths.get(pathToFile);
-        Files.copy(path, connection.getOutputStream());
+        Files.copy(pathToFile, connection.getOutputStream());
 
-        int responseCode = connection.getResponseCode();
-        if (responseCode != 200) {
-            System.out.println("Response Code : " + responseCode);
+        int httpStatusCode = connection.getResponseCode();
+        if (httpStatusCode != HttpURLConnection.HTTP_OK) {
+            System.out.println("Http status code : " + httpStatusCode);
         }
 
         BufferedReader in = new BufferedReader(
@@ -119,5 +114,52 @@ public class FaceRequester {
         in.close();
 
         return response.toString();
+    }
+
+    public String byBufferedImage(BufferedImage input) throws Exception {
+
+        URL url = buildUrl();
+        HttpURLConnection connection = createConnection(url);
+        connection.setRequestProperty("Content-Type", "application/octet-stream");
+
+        // Send post request
+        connection.setDoOutput(true);
+        ImageIO.write(input, "PNG", connection.getOutputStream());
+
+        int httpStatusCode = connection.getResponseCode();
+        if (httpStatusCode != HttpURLConnection.HTTP_OK) {
+            System.out.println("Http status code : " + httpStatusCode);
+        }
+
+        BufferedReader in = new BufferedReader(
+                new InputStreamReader(connection.getInputStream()));
+        String inputLine;
+        StringBuffer response = new StringBuffer();
+
+        while ((inputLine = in.readLine()) != null) {
+            response.append(inputLine);
+        }
+        in.close();
+
+        return response.toString();
+    }
+
+    public boolean isReturnFaceId() {
+        return returnFaceId;
+    }
+    public void setReturnFaceId(boolean returnFaceId) {
+        this.returnFaceId = returnFaceId;
+    }
+    public boolean isReturnFaceLandmarks() {
+        return returnFaceLandmarks;
+    }
+    public void setReturnFaceLandmarks(boolean returnFaceLandmarks) {
+        this.returnFaceLandmarks = returnFaceLandmarks;
+    }
+    public String getReturnFaceAttributes() {
+        return returnFaceAttributes;
+    }
+    public void setReturnFaceAttributes(String returnFaceAttributes) {
+        this.returnFaceAttributes = returnFaceAttributes;
     }
 }

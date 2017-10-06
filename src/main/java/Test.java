@@ -51,11 +51,22 @@ public class Test extends JFrame {
         pack();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
-        EventQueue.invokeLater(() -> {
-            Test ex = new Test();
-            ex.setVisible(true);
-        });
+        WebcamHandler wh = new WebcamHandler();
+        FaceRequester fr = new FaceRequester(
+                "87c048759d514e94bec0826164a98187",
+                "https://westcentralus.api.cognitive.microsoft.com/face/v1.0/detect"
+        );
+        // Valid until 1 november 2017
+        System.out.println("OBAMA:");
+        System.out.println(fr.byFile("src\\main\\resources\\obama.jpg"));
+        System.out.println("YOU:");
+        System.out.println(fr.byBufferedImage(wh.getImage()));
+
+//        EventQueue.invokeLater(() -> {
+//            Test ex = new Test();
+//            ex.setVisible(true);
+//        });
     }
 }
