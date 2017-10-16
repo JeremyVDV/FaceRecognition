@@ -60,9 +60,16 @@ public class Test extends JFrame {
         );
         // Valid until 1 november 2017
         System.out.println("OBAMA:");
-        System.out.println(fr.byFile("src\\main\\resources\\obama.jpg"));
-        System.out.println("YOU:");
-        System.out.println(fr.byBufferedImage(wh.getImage()));
+        String jsonStr = fr.byFile("src\\main\\resources\\obama.jpg");
+        System.out.println(jsonStr);
+        Face obama = FaceParser.fromJson(jsonStr);
+        System.out.println(obama);
+
+        System.out.println("\nYOU:");
+        jsonStr = fr.byBufferedImage(wh.getImage());
+        System.out.println(jsonStr);
+        Face you = FaceParser.fromJson(jsonStr);
+        System.out.println(you);
 
 //        EventQueue.invokeLater(() -> {
 //            Test ex = new Test();
